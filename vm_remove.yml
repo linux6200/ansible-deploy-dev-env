@@ -1,0 +1,24 @@
+---
+- hosts: localhost   ## 在本机执行，因为其实是在调用vcenter的api，因此不是以前登陆再配置的模式
+  gather_facts: No
+  vars_files:
+    - vcenter_vars.yml
+  connection: local  ## 本地连接
+
+  tasks:
+  - set_fact:
+      vm_name: ansiblemade_3          #  虚拟机名，在Vcenter中看到的名字
+      datacenter: Datacenter
+
+  - name: Remove "{{ vm_name }}"
+    vmware_guest:
+        hostname: "{{ vcenter_server }}"
+        username: "{{ vcenter_user }}"
+        password: "{{ vcenter_pass }}"
+        validate_certs: no
+        name: "{{ vm_name }}"
+        state: absent
+        force: yes
+    delegate_to: localhost
+    register: facts
+

@@ -1,0 +1,71 @@
+---
+- hosts: localhost   ## 在本机执行，因为其实是在调用vcenter的api，因此不是以前登陆再配置的模式
+  gather_facts: No
+  vars_files:
+    - vcenter_vars.yml 
+  connection: local  ## 本地连接
+
+  tasks:
+  - set_fact:
+      vm_name: ansiblemade_3
+      datacenter: Datacenter
+
+  - name: create the VM
+    vmware_guest:
+      hostname: "{{ vcenter_server }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: no  #这里注意，跳过证书检验，但是这里我遇到坑，后面说。
+      datacenter: "{{ datacenter }}"
+      esxi_hostname: 10.32.32.162     #  esxi_hostname和cluster只能选一个
+      folder: 123
+      #cluster: DataCenter-HA-V6.0    #  指定esxi机器或者不指定写集群名
+      name: "{{ vm_name }}"           #  虚拟机名，在Vcenter中看到的名字
+      annotation: ansible auto created  # 注释
+      state: poweredon                #  开机状态 有：
+                                      #     present  
+                                      #     absent   删除，小心使用
+                                      #     poweredon
+                                      #     poweredoff
+                                      #     restarted
+                                      #     suspended
+                                      #     shutdownguest
+                                      #     rebootguest
+
+      guest_id: centos64Guest         # 从以下地址选一个对应的，必须一致。
+             # https://www.vmware.com/support/developer/converter-sdk/conv55_apireference/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+      disk:                           # 磁盘列表，这里是一个列表，模版里面做了几块盘都要把配置写上
+      - size_gb: 16
+        type: thin
+        datastore: local_datastore_1
+      - size_gb: 8
+        type: thin
+        datastore: local_datastore_1
+      #hardware:                    # 虚拟机配置，因为是基于模版创建，这里都pass了
+      #  memory_mb: 512
+      #   num_cpus: 1
+      # scsi: paravirtual
+      networks:                     # 对应的网络信息
+      - name: NET-10.32.39
+        ip: 10.32.39.238
+        netmask: 255.255.255.0
+        gateway: 10.32.39.1
+      customization:
+        hostname: ansiblemade
+        domain: xxx.com
+        dns_servers:
+        - 10.254.174.10
+      template: CentOS7
+      wait_for_ip_address: yes   # 等待创建的机器ip出来后再继续
+    delegate_to: localhost
+    register: deploy
+
+  - name: display info
+    debug:
+      var: deploy
+
+  - name: install the latest version of Apache
+    yum:
+      name: httpd
+      state: latest
+

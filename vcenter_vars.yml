@@ -1,0 +1,7 @@
+---
+# in the above example, this would be vars/external_vars.yml
+vcenter_server: 10.32.32.164
+vcenter_user: administrator@vsphere.local
+vcenter_pass: P@ssw0rd
+
+

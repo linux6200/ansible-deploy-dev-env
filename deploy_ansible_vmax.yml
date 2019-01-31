@@ -1,0 +1,71 @@
+---
+- hosts: all
+  remote_user: root
+  
+
+  tasks:
+  - set_fact:
+      PyU4V_PATH: /root/PyU4V
+
+  - name: Generate the ssh key. 
+    authorized_key:
+      user: root
+      state: present
+      key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+
+  - name: install git package.
+    yum:
+      name: git
+      state: latest
+    
+  - name: install epel-release repository
+    yum:
+      name: epel-release
+      state: latest
+
+  - name: install python-pip package
+    yum:
+      name: python-pip
+      state: latest
+
+  - name: install ansible package
+    yum:
+      name: ansible
+      state: latest
+
+  - name: Clone PyU4V package from github
+    git:
+      repo: https://github.com/linux6200/PyU4V.git
+      dest: /root/PyU4V
+      force: yes
+
+  - name: Change the working directory to /root/PyU4V, then install it.
+    shell: pip install .
+    args:
+      chdir: /root/PyU4V
+
+  - name: Copy the sample configure file
+    copy: 
+      src: ./PyU4V.conf
+      dest: /root/PyU4V/PyU4V.conf
+
+  - name: Clone DellEMC PMAX for Ansible package from github
+    git:
+      repo: https://github.com/linux6200/dellemcpmax_ansible.git
+      dest: /root/dellemcpmax_ansible
+      force: yes
+
+
+  - name: Copy dellemc to ansible module directory
+    shell: |
+      cp -R /root/dellemcpmax_ansible/dellemc /usr/lib/python2.7/site-packages/ansible/modules/storage/.
+      cp /root/dellemcpmax_ansible/module_utils/dellemc.py /usr/lib/python2.7/site-packages/ansible/module_utils/.
+    register: command_result
+    failed_when: "'FAILED' in command_result.stderr"
+  
+
+
+
+
+
+
